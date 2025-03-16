@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
+import axios from "axios";
 
 const toolbarOptions = [
     ["bold", "italic", "underline", "strike"],
@@ -21,8 +22,8 @@ const toolbarOptions = [
     ["clean"],
   ];
 const SharedDocument = () => {
-  const { linkId } = useParams(); // 🔴 linkId is only for fetching, not for joining the socket room
-  const [docId, setDocId] = useState(null); // ✅ Store the actual docId
+  const { linkId } = useParams(); 
+  const [docId, setDocId] = useState(null);
   const [permission, setPermission] = useState(null);
   const containerRef = useRef(null);
   const quillRef = useRef(null);
@@ -31,20 +32,19 @@ const SharedDocument = () => {
   useEffect(() => {
     const fetchDocument = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/documents/shared/${linkId}`);
-        const data = await response.json();
-
-        if (response.ok) {
-          setDocId(data.document._id); // ✅ Extract and store docId
-          setPermission(data.permission);
-        } else {
-          console.error("Error fetching shared document:", data.error);
-        }
+        const response = await axios.get(`http://localhost:8000/documents/shared/${linkId}`, {
+          withCredentials: true
+        });
+  
+        console.log("📄 Shared document:", response.data);
+  
+        setDocId(response.data.document._id); // ✅ correct way
+        setPermission(response.data.permission);
       } catch (error) {
-        console.error("❌ Error loading document:", error);
+        console.error("❌ Error loading document:", error?.response?.data || error.message);
       }
     };
-
+  
     fetchDocument();
   }, [linkId]);
 

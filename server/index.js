@@ -116,12 +116,14 @@ app.post("/documents", verifyJWT,async (req, res) => {
   try {
     const username  = req.user.name; // Owner ID passed from the frontend
     const userId = req.user.userId;
+    const {title}= req.body;
+    console.log("title is ",title);
     if (!username) {
       return res.status(400).json({ error: "Owner ID is required" });
     }
 
     const docId = uuidv4();
-    const newDocument = new Document({ _id: docId, content: "", title: "", owner: username });
+    const newDocument = new Document({ _id: docId, content: "", title: title, owner: username });
 
     await newDocument.save();
 
@@ -255,7 +257,7 @@ app.put("/documents/:id/title",verifyJWT, async (req, res) => {
 app.post("/upload-docx", verifyJWT,upload.single("file"), async (req, res) => {
   try {
     const { username } = req.user.name; // Assuming you send username from frontend
-
+    const {title}=req.body;
     if (!username) {
       return res.status(400).json({ error: "Owner ID (username) is required" });
     }
@@ -275,7 +277,7 @@ app.post("/upload-docx", verifyJWT,upload.single("file"), async (req, res) => {
     const newDocument = new Document({
       _id: docId,
       content: deltaContent,
-      title: "", // You can set a default or allow frontend to edit later
+      title: title, // You can set a default or allow frontend to edit later
       owner: username,
     });
 
@@ -400,7 +402,15 @@ app.get("/documents/:id", verifyJWT,async (req, res) => {
 });
 
 
-
+app.get("/users/names", verifyJWT, async (req, res) => {
+  const ids = req.query.ids?.split(",") || [];
+  try {
+    const users = await User.find({ _id: { $in: ids } }).select("_id name");
+    res.json(users); 
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch names" });
+  }
+});
 
 app.put("/documents/:id",verifyJWT, async (req, res) => {
   try {
