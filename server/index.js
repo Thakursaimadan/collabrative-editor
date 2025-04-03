@@ -254,21 +254,26 @@ app.put("/documents/:id/title",verifyJWT, async (req, res) => {
 
 
 
-app.post("/upload-docx", verifyJWT,upload.single("file"), async (req, res) => {
+app.post("/upload-docx", verifyJWT, upload.single("file"), async (req, res) => {
   try {
-    const { username } = req.user.name; // Assuming you send username from frontend
-    const {title}=req.body;
-    if (!username) {
-      return res.status(400).json({ error: "Owner ID (username) is required" });
-    }
+    const username = req.user.name; // Fixed username extraction
+    const { title } = req.body;
 
+    if (!username) {
+      return res.status(400).json({ error: "Owner username is required" });
+    }
+    if (!title) {
+      return res.status(400).json({ error: "Title is required" });
+    }
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
 
+    //console.log("File uploaded:", req.file.path);
     const docxBuffer = readFileSync(req.file.path);
     const result = await mammoth.extractRawText({ buffer: docxBuffer });
 
+    //console.log("Extracted text:", result.value);
     const deltaContent = {
       ops: [{ insert: result.value + "\n" }],
     };
@@ -277,23 +282,26 @@ app.post("/upload-docx", verifyJWT,upload.single("file"), async (req, res) => {
     const newDocument = new Document({
       _id: docId,
       content: deltaContent,
-      title: title, // You can set a default or allow frontend to edit later
+      title: title,
       owner: username,
     });
 
     await newDocument.save();
 
-    // ⬅️ Push the document ID to user's documents array
-    await User.findByIdAndUpdate(username, { $push: { documents: docId } });
-
-    unlinkSync(req.file.path);
+    await User.findOneAndUpdate({ name: username }, { $push: { documents: docId } });
 
     res.status(201).json({ docId, message: "Document uploaded and saved successfully." });
   } catch (error) {
-    console.error("❌ Error processing DOCX file:", error);
+    //console.error("❌ Error processing DOCX file:", error);
     res.status(500).json({ error: "Failed to process file." });
+  } finally {
+    if (req.file?.path) {
+      console.log("Deleting the uploaded file:", req.file.path);
+      unlinkSync(req.file.path);
+    }
   }
 });
+
 
 app.post("/documents/:id/share", verifyJWT,async (req, res) => {
   try {
