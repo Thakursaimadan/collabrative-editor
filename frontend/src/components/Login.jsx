@@ -4,6 +4,9 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import axios from "axios"
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+
 export default function Login() {
   const [name, setName] = useState("")
   const [password, setPassword] = useState("")
@@ -16,7 +19,7 @@ export default function Login() {
     const checkAuth = async () => {
       try {
         setIsCheckingAuth(true)
-        const res = await axios.get("http://localhost:8000/me", {
+        const res = await axios.get(`${BACKEND_URL}/me`, {
           withCredentials: true,
         })
         console.log("User already logged in:", res.data)
@@ -43,7 +46,7 @@ export default function Login() {
       setIsLoading(true)
       setError("")
 
-      const response = await axios.post("http://localhost:8000/login", { name, password }, { withCredentials: true })
+      const response = await axios.post(`${BACKEND_URL}/login`, { name, password }, { withCredentials: true })
 
       console.log("Login response:", response.data)
       navigate("/")

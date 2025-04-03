@@ -7,6 +7,9 @@ import Quill from "quill"
 import "quill/dist/quill.snow.css"
 import axios from "axios"
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+
 const toolbarOptions = [
   ["bold", "italic", "underline", "strike"],
   ["blockquote", "code-block"],
@@ -42,18 +45,17 @@ const Editor = () => {
   const [shareLink, setShareLink] = useState("")
   const [copySuccess, setCopySuccess] = useState(false)
 
-  // ✅ Verify JWT authentication using cookie
+  
   useEffect(() => {
     const verifyAuth = async () => {
       try {
-        const res = await axios.get("http://localhost:8000/verify", {
+        const res = await axios.get(`${BACKEND_URL}/verify`, {
           withCredentials: true,
         })
         setUsername(res.data.name)
 
-        // Fetch document title
         try {
-          const docRes = await axios.get(`http://localhost:8000/documents/${docId}`, {
+          const docRes = await axios.get(`${BACKEND_URL}/documents/${docId}`, {
             withCredentials: true,
           })
           if (docRes.data && docRes.data.title) {
@@ -91,11 +93,10 @@ const Editor = () => {
     }, 0)
   }, [isLoading])
 
-  // ✅ Connect socket only after authentication and Quill init
   useEffect(() => {
     if (!quill || !username) return
 
-    const socketServer = io("http://localhost:8000", {
+    const socketServer = io(`${BACKEND_URL}`, {
       withCredentials: true,
     })
 
@@ -110,7 +111,6 @@ const Editor = () => {
     }
   }, [quill, username, docId])
 
-  // Load document content from backend
   useEffect(() => {
     if (!socket || !quill) return
 
@@ -158,7 +158,7 @@ const Editor = () => {
   const handleShareClick = async () => {
     try {
       const response = await axios.post(
-        `http://localhost:8000/documents/${docId}/share`,
+        `${BACKEND_URL}/documents/${docId}/share`,
         { permission },
         { withCredentials: true },
       )

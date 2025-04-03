@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 function Home() {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
@@ -12,7 +14,7 @@ function Home() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const res = await axios.get("http://localhost:8000/verify", {
+        const res = await axios.get(`${BACKEND_URL}/verify`, {
           withCredentials: true,
         });
         setUsername(res.data.name);
@@ -24,7 +26,7 @@ function Home() {
 
     const fetchDocuments = async (userId) => {
       try {
-        const res = await axios.get(`http://localhost:8000/users/${userId}/documents`, {
+        const res = await axios.get(`${BACKEND_URL}/users/${userId}/documents`, {
           withCredentials: true,
         });
         setDocuments(res.data);
@@ -42,7 +44,7 @@ function Home() {
 
     try {
       const response = await axios.post(
-        "http://localhost:8000/documents",
+        `${BACKEND_URL}/documents`,
         { title },
         { withCredentials: true }
       );
@@ -56,7 +58,7 @@ function Home() {
       if (!window.confirm("Are you sure you want to delete this document?")) return;
   
       try {
-        await axios.delete(`http://localhost:8000/documents/${docId}`, {
+        await axios.delete(`${BACKEND_URL}/documents/${docId}`, {
           withCredentials: true,
         });
         setDocuments((prevDocs) => prevDocs.filter((doc) => doc._id !== docId));
@@ -79,7 +81,7 @@ function Home() {
     formData.append("title", title);
 
     try {
-      const response = await axios.post("http://localhost:8000/upload-docx", formData, {
+      const response = await axios.post(`${BACKEND_URL}/upload-docx`, formData, {
         withCredentials: true,
       });
       navigate(`/editor/${response.data.docId}`);

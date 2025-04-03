@@ -20,7 +20,7 @@ import http from "http";
 const app = express();
 
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:3000"],
+  origin: process.env.FRONTEND_URL||"http://localhost:5173",
   credentials: true,
 }));
 
@@ -35,7 +35,7 @@ mongoose.connect(`${process.env.MONGO_URI}`, {
 }).then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-const PORT = 8000;
+const PORT = process.env.PORT;
 const server = http.createServer(app);
 
 
@@ -43,8 +43,8 @@ const upload = multer({ dest: "uploads/" });
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
-    credentials: true, // ✅ Add this line!
+    origin: process.env.FRONTEND_URL||"http://localhost:5173",
+    credentials: true, 
     methods: ["GET", "POST", "PUT", "DELETE"],
   },
 });
@@ -322,7 +322,7 @@ app.post("/documents/:id/share", verifyJWT,async (req, res) => {
     document.sharedLinks.push({ linkId, permission });
     await document.save();
 
-    const sharedURL = `http://localhost:3000/documents/shared/${linkId}`;
+    const sharedURL = `${process.env.FRONTEND_URL}/documents/shared/${linkId}`;
     res.json({ message: "Shareable link generated", sharedURL, permission });
   } catch (error) {
     console.error("❌ Error generating shareable link:", error);

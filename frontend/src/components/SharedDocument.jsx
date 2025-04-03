@@ -7,6 +7,11 @@ import Quill from "quill"
 import "quill/dist/quill.snow.css"
 import axios from "axios"
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+
+
+
 const toolbarOptions = [
   ["bold", "italic", "underline", "strike"],
   ["blockquote", "code-block"],
@@ -34,12 +39,13 @@ const SharedDocument = () => {
   const containerRef = useRef(null)
   const quillRef = useRef(null)
   const socket = useRef(null)
+  
 
   useEffect(() => {
     const fetchDocument = async () => {
       try {
         setIsLoading(true)
-        const response = await axios.get(`http://localhost:8000/documents/shared/${linkId}`, {
+        const response = await axios.get(`${BACKEND_URL}/documents/shared/${linkId}`, {
           withCredentials: true,
         })
 
@@ -81,7 +87,7 @@ const SharedDocument = () => {
     if (!docId) return
 
     if (!socket.current) {
-      socket.current = io("http://localhost:8000")
+      socket.current = io(`${BACKEND_URL}`)
 
       socket.current.on("connect", () => {
         console.log("✅ Connected to server")
