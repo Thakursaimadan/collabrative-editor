@@ -50,6 +50,7 @@ function Home() {
       );
       navigate(`/editor/${response.data.docId}`);
     } catch (error) {
+      
       console.error("Error creating document:", error);
     }
   };
@@ -83,7 +84,11 @@ function Home() {
     try {
       const response = await axios.post(`${BACKEND_URL}/upload-docx`, formData, {
         withCredentials: true,
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
+      
       navigate(`/editor/${response.data.docId}`);
     } catch (error) {
       console.error("Error uploading file:", error);

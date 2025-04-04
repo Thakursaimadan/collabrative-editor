@@ -14,41 +14,40 @@ import dotenv from "dotenv";
 dotenv.config();
 import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
-import bcrypt from 'bcrypt';
-import http from "http"; 
-
+import bcrypt from "bcrypt";
+import http from "http";
+import upload from "./config/mutler-cloudinary.js";
 const app = express();
 
-app.use(cors({
-  origin: process.env.FRONTEND_URL||"http://localhost:5173",
-  credentials: true,
-}));
-
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 app.use(cookieParser());
 
 //console.log(process.env.MONGO_URI);
-mongoose.connect(`${process.env.MONGO_URI}`, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+mongoose
+  .connect(`${process.env.MONGO_URI}`, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch((err) => console.error(" MongoDB connection error:", err));
 
 const PORT = process.env.PORT;
 const server = http.createServer(app);
 
-
-const upload = multer({ dest: "uploads/" });
-
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL||"http://localhost:5173",
-    credentials: true, 
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
   },
 });
-
 
 server.listen(PORT, () => {
   console.log(`Server started on http://localhost:${PORT}`);
@@ -73,7 +72,7 @@ io.on("connection", (socket) => {
       // Send the document content to the user
       socket.emit("load-document", document.content);
     } catch (error) {
-      console.error("❌ Error loading document:", error);
+      console.error(" Error loading document:", error);
     }
   });
 
@@ -85,45 +84,49 @@ io.on("connection", (socket) => {
     try {
       await Document.findByIdAndUpdate(docId, { content });
     } catch (error) {
-      console.error("❌ Error saving document:", error);
+      console.error(" Error saving document:", error);
     }
   });
 
   socket.on("disconnect", () => {
-    console.log(`❌ Client disconnected: ${socket.id}`);
+    console.log(` Client disconnected: ${socket.id}`);
   });
 });
 
-
-
-
 function verifyJWT(req, res, next) {
   const token = req.cookies.access_token;
-  if (!token) return res.sendStatus(403);
+  if (!token) {
+    //console.log("hah haha haha")
+    return res.sendStatus(403);
+  }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     next();
   } catch (err) {
+    console.log("invalid token");
     return res.sendStatus(401);
   }
 }
 
-
-
-app.post("/documents", verifyJWT,async (req, res) => {
+app.post("/documents", verifyJWT, async (req, res) => {
   try {
-    const username  = req.user.name; // Owner ID passed from the frontend
+    const username = req.user.name; // Owner ID passed from the frontend
     const userId = req.user.userId;
-    const {title}= req.body;
-    console.log("title is ",title);
+    const { title } = req.body;
+    console.log("title is ", title);
     if (!username) {
       return res.status(400).json({ error: "Owner ID is required" });
     }
 
     const docId = uuidv4();
-    const newDocument = new Document({ _id: docId, content: "", title: title, owner: username });
+    const newDocument = new Document({
+      _id: docId,
+      content: "",
+      title: title,
+      owner: username,
+    });
 
     await newDocument.save();
 
@@ -131,11 +134,10 @@ app.post("/documents", verifyJWT,async (req, res) => {
 
     res.status(201).json({ docId });
   } catch (error) {
-    console.error("❌ Error creating document:", error);
+    console.error(" Error creating document:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
-
 
 app.post("/users/register", async (req, res) => {
   try {
@@ -157,51 +159,54 @@ app.post("/users/register", async (req, res) => {
     const accessToken = jwt.sign(
       { userId: user._id, name: user.name },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' }
+      { expiresIn: "1h" }
     );
-  
+
     // Set the token in cookie
-    res.cookie('access_token', accessToken, {
+    res.cookie("access_token", accessToken, {
       httpOnly: true,
-      sameSite: 'None',
+      sameSite: "None",
       secure: true, // Must be true for SameSite=None in production
-      maxAge: 60 * 60 * 1000 // 1 hour
+      maxAge: 60 * 60 * 1000, // 1 hour
     });
 
-    res.status(200).json({ message: "User registered and logged in successfully", userId: user._id });
+    res
+      .status(200)
+      .json({
+        message: "User registered and logged in successfully",
+        userId: user._id,
+      });
   } catch (error) {
     console.error("Error registering user:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-
-app.post('/login', async (req, res) => {
+app.post("/login", async (req, res) => {
   const { name, password } = req.body;
   const user = await User.findOne({ name });
   if (!user || !bcrypt.compareSync(password, user.password)) {
-    return res.status(401).json({ message: 'Invalid credentials' });
+    return res.status(401).json({ message: "Invalid credentials" });
   }
 
   const accessToken = jwt.sign(
     { userId: user._id, name: user.name },
     process.env.JWT_SECRET,
-    { expiresIn: '1h' }
+    { expiresIn: "1h" }
   );
 
   // Set the token in cookie
-  res.cookie('access_token', accessToken, {
+  res.cookie("access_token", accessToken, {
     httpOnly: true,
-    sameSite: 'None',
+    sameSite: "None",
     secure: true, // Must be true for SameSite=None in production
-    maxAge: 60 * 60 * 1000 // 1 hour
+    maxAge: 60 * 60 * 1000, // 1 hour
   });
 
-  res.json({ message: 'Login successful' });
+  res.json({ message: "Login successful" });
 });
 
-
-app.get('/verify', verifyJWT, (req, res) => {
+app.get("/verify", verifyJWT, (req, res) => {
   return res.status(200).json({ userId: req.user.userId, name: req.user.name });
 });
 
@@ -210,7 +215,7 @@ app.get("/me", verifyJWT, (req, res) => {
 });
 
 //to get all documents of the user
-app.get("/users/:id/documents", verifyJWT,async (req, res) => {
+app.get("/users/:id/documents", verifyJWT, async (req, res) => {
   try {
     const user = await User.findById(req.params.id).populate("documents");
     if (!user) {
@@ -219,15 +224,12 @@ app.get("/users/:id/documents", verifyJWT,async (req, res) => {
 
     res.json(user.documents);
   } catch (error) {
-    console.error("❌ Error fetching user's documents:", error);
+    console.error(" Error fetching user's documents:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-
-
-
-app.put("/documents/:id/title",verifyJWT, async (req, res) => {
+app.put("/documents/:id/title", verifyJWT, async (req, res) => {
   try {
     const { title } = req.body;
     if (!title) {
@@ -236,8 +238,8 @@ app.put("/documents/:id/title",verifyJWT, async (req, res) => {
 
     const updatedDocument = await Document.findByIdAndUpdate(
       req.params.id,
-      { title, lastUpdated: new Date() },  // Update title and lastUpdated field
-      { new: true }  // Return the updated document
+      { title, lastUpdated: new Date() }, // Update title and lastUpdated field
+      { new: true } // Return the updated document
     );
 
     if (!updatedDocument) {
@@ -246,64 +248,173 @@ app.put("/documents/:id/title",verifyJWT, async (req, res) => {
 
     res.json(updatedDocument);
   } catch (error) {
-    console.error("❌ Error updating title:", error);
+    console.error(" Error updating title:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
 
+// app.post("/upload-docx", verifyJWT, upload.single("file"), async (req, res) => {
+//   try {
+//     console.log("Entered upload-docx");
+//     const username = req.user.name;
+//     const { title } = req.body;
 
+//     if (!username || !title || !req.file) {
+//       return res.status(400).json({ error: "Missing required fields." });
+//     }
 
+//     // Log the uploaded file details properly
+//     console.log("Uploaded file details:", {
+//       originalname: req.file.originalname,
+//       mimetype: req.file.mimetype,
+//       size: req.file.size,
+//       url: req.file.path, // Cloudinary URL
+//       cloudinaryDetails: req.file, // Full Cloudinary response
+//     });
 
-app.post("/upload-docx", verifyJWT, upload.single("file"), async (req, res) => {
-  try {
-    const username = req.user.name; // Fixed username extraction
-    const { title } = req.body;
+//     // Get the Cloudinary URL (secure_url is preferred)
+//     const fileUrl = req.file.secure_url || req.file.url;
+//     console.log("Cloudinary file URL:");
 
-    if (!username) {
-      return res.status(400).json({ error: "Owner username is required" });
-    }
-    if (!title) {
-      return res.status(400).json({ error: "Title is required" });
-    }
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
+//     // Download the file from Cloudinary
+//     const response = await fetch(fileUrl);
+//     if (!response.ok) {
+//       console.error("Failed to fetch file from Cloudinary:", response.status, await response.text());
+//       return res.status(500).json({ error: "Failed to fetch file from Cloudinary" });
+//     }
 
-    //console.log("File uploaded:", req.file.path);
-    const docxBuffer = readFileSync(req.file.path);
-    const result = await mammoth.extractRawText({ buffer: docxBuffer });
+//     const docxBuffer = await response.arrayBuffer();
 
-    //console.log("Extracted text:", result.value);
-    const deltaContent = {
-      ops: [{ insert: result.value + "\n" }],
-    };
+//     let result;
+//     try {
+//       result = await mammoth.extractRawText({ buffer: Buffer.from(docxBuffer) });
+//     } catch (err) {
+//       console.error("Failed to extract text from DOCX:", err);
+//       return res.status(500).json({ error: "Invalid DOCX file" });
+//     }
 
-    const docId = uuidv4();
-    const newDocument = new Document({
-      _id: docId,
-      content: deltaContent,
-      title: title,
-      owner: username,
+//     const deltaContent = {
+//       ops: [{ insert: result.value + "\n" }],
+//     };
+
+//     const docId = uuidv4();
+//     const newDocument = new Document({
+//       _id: docId,
+//       content: deltaContent,
+//       title: title,
+//       owner: username,
+//     });
+
+//     await newDocument.save();
+//     await User.findOneAndUpdate({ name: username }, { $push: { documents: docId } });
+
+//     res.status(201).json({ docId, message: "Document uploaded and saved successfully." });
+//   } catch (error) {
+//     console.error("Error processing DOCX file:", error.message);
+//     res.status(500).json({ error: "Failed to process file." });
+//   }
+// });
+
+app.post(
+  "/upload-docx",
+  verifyJWT,
+  (req, res, next) => {
+    //console.log("Before upload.single");
+    upload.single("file")(req, res, (err) => {
+      if (err) {
+        console.error("Multer/Cloudinary Error Object:", err);
+        return res.status(400).json({
+          error: "File upload failed",
+          details: err.message,
+        });
+      }
+      //console.log("After upload.single");
+      next();
     });
+  },
+  async (req, res) => {
+    try {
+      //console.log("Entered upload-docx");
+      const username = req.user.name;
+      const { title } = req.body;
 
-    await newDocument.save();
+      if (!username || !title || !req.file) {
+        return res.status(400).json({ error: "Missing required fields." });
+      }
 
-    await User.findOneAndUpdate({ name: username }, { $push: { documents: docId } });
+      // Log the uploaded file details properly
+      console.log("Uploaded file details:", {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        url: req.file.path, // Cloudinary URL
+        cloudinaryDetails: req.file, // Full Cloudinary response
+      });
 
-    res.status(201).json({ docId, message: "Document uploaded and saved successfully." });
-  } catch (error) {
-    //console.error("❌ Error processing DOCX file:", error);
-    res.status(500).json({ error: "Failed to process file." });
-  } finally {
-    if (req.file?.path) {
-      console.log("Deleting the uploaded file:", req.file.path);
-      unlinkSync(req.file.path);
+      // Get the Cloudinary URL (secure_url is preferred)
+      const fileUrl = req.file?.path;
+      if (!fileUrl) {
+        console.error("No valid Cloudinary URL found in req.file");
+        return res
+          .status(500)
+          .json({ error: "Invalid Cloudinary upload response" });
+      }
+      //console.log("Cloudinary file URL:", fileUrl);
+
+      // ✅ Fetch and process the .docx file
+      const response = await fetch(fileUrl);
+      if (!response.ok) {
+        console.error(
+          "Failed to fetch file from Cloudinary:",
+          response.status,
+          await response.text()
+        );
+        return res
+          .status(500)
+          .json({ error: "Failed to fetch file from Cloudinary" });
+      }
+
+      const docxBuffer = await response.arrayBuffer();
+
+      let result;
+      try {
+        result = await mammoth.extractRawText({
+          buffer: Buffer.from(docxBuffer),
+        });
+      } catch (err) {
+        console.error("Failed to extract text from DOCX:", err);
+        return res.status(500).json({ error: "Invalid DOCX file" });
+      }
+
+      const deltaContent = {
+        ops: [{ insert: result.value + "\n" }],
+      };
+
+      const docId = uuidv4();
+      const newDocument = new Document({
+        _id: docId,
+        content: deltaContent,
+        title: title,
+        owner: username,
+      });
+
+      await newDocument.save();
+      await User.findOneAndUpdate(
+        { name: username },
+        { $push: { documents: docId } }
+      );
+
+      res
+        .status(201)
+        .json({ docId, message: "Document uploaded and saved successfully." });
+    } catch (error) {
+      console.error("Error processing DOCX file:", error.message);
+      res.status(500).json({ error: "Failed to process file." });
     }
   }
-});
+);
 
-
-app.post("/documents/:id/share", verifyJWT,async (req, res) => {
+app.post("/documents/:id/share", verifyJWT, async (req, res) => {
   try {
     const { permission } = req.body;
     if (!["view", "edit"].includes(permission)) {
@@ -325,14 +436,12 @@ app.post("/documents/:id/share", verifyJWT,async (req, res) => {
     const sharedURL = `${process.env.FRONTEND_URL}/documents/shared/${linkId}`;
     res.json({ message: "Shareable link generated", sharedURL, permission });
   } catch (error) {
-    console.error("❌ Error generating shareable link:", error);
+    console.error(" Error generating shareable link:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-
-
-app.get("/documents/shared/:linkId", verifyJWT,async (req, res) => {
+app.get("/documents/shared/:linkId", verifyJWT, async (req, res) => {
   try {
     const { linkId } = req.params;
     const userId = req.user.userId; // assuming user is authenticated
@@ -342,11 +451,15 @@ app.get("/documents/shared/:linkId", verifyJWT,async (req, res) => {
       return res.status(404).json({ error: "Invalid or expired link" });
     }
 
-    const sharedLink = document.sharedLinks.find(link => link.linkId === linkId);
+    const sharedLink = document.sharedLinks.find(
+      (link) => link.linkId === linkId
+    );
 
     // If user is logged in, add to sharedWith
     if (userId) {
-      const alreadyShared = document.sharedWith.find(entry => entry.userId === userId);
+      const alreadyShared = document.sharedWith.find(
+        (entry) => entry.userId === userId
+      );
 
       if (!alreadyShared) {
         document.sharedWith.push({
@@ -359,11 +472,11 @@ app.get("/documents/shared/:linkId", verifyJWT,async (req, res) => {
 
     res.json({ document, permission: sharedLink.permission });
   } catch (error) {
-    console.error("❌ Error accessing shared document:", error);
+    console.error(" Error accessing shared document:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
-app.put("/documents/shared/:linkId",verifyJWT, async (req, res) => {
+app.put("/documents/shared/:linkId", verifyJWT, async (req, res) => {
   try {
     const { linkId } = req.params;
     const { content } = req.body;
@@ -373,10 +486,14 @@ app.put("/documents/shared/:linkId",verifyJWT, async (req, res) => {
       return res.status(404).json({ error: "Invalid or expired link" });
     }
 
-    const sharedLink = document.sharedLinks.find(link => link.linkId === linkId);
+    const sharedLink = document.sharedLinks.find(
+      (link) => link.linkId === linkId
+    );
 
     if (sharedLink.permission !== "edit") {
-      return res.status(403).json({ error: "You do not have permission to edit this document" });
+      return res
+        .status(403)
+        .json({ error: "You do not have permission to edit this document" });
     }
 
     document.content = content;
@@ -385,18 +502,12 @@ app.put("/documents/shared/:linkId",verifyJWT, async (req, res) => {
 
     res.json({ message: "Document updated successfully" });
   } catch (error) {
-    console.error("❌ Error updating shared document:", error);
+    console.error(" Error updating shared document:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-
-
-
-
-
-
-app.get("/documents/:id", verifyJWT,async (req, res) => {
+app.get("/documents/:id", verifyJWT, async (req, res) => {
   try {
     const document = await Document.findById(req.params.id);
     if (!document) {
@@ -404,23 +515,22 @@ app.get("/documents/:id", verifyJWT,async (req, res) => {
     }
     res.json(document);
   } catch (error) {
-    console.error("❌ Error fetching document:", error);
+    console.error(" Error fetching document:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
-
 
 app.get("/users/names", verifyJWT, async (req, res) => {
   const ids = req.query.ids?.split(",") || [];
   try {
     const users = await User.find({ _id: { $in: ids } }).select("_id name");
-    res.json(users); 
+    res.json(users);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch names" });
   }
 });
 
-app.put("/documents/:id",verifyJWT, async (req, res) => {
+app.put("/documents/:id", verifyJWT, async (req, res) => {
   try {
     const { content } = req.body;
     const updatedDocument = await Document.findByIdAndUpdate(
@@ -433,11 +543,10 @@ app.put("/documents/:id",verifyJWT, async (req, res) => {
     }
     res.json(updatedDocument);
   } catch (error) {
-    console.error("❌ Error updating document:", error);
+    console.error(" Error updating document:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
-
 
 app.get("/documents/shared-with-me", verifyJWT, async (req, res) => {
   try {
@@ -446,11 +555,10 @@ app.get("/documents/shared-with-me", verifyJWT, async (req, res) => {
 
     res.json(sharedDocs);
   } catch (error) {
-    console.error("❌ Error fetching shared documents:", error);
+    console.error(" Error fetching shared documents:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
-
 
 app.get("/documents/:id/shared-users", verifyJWT, async (req, res) => {
   try {
@@ -459,7 +567,9 @@ app.get("/documents/:id/shared-users", verifyJWT, async (req, res) => {
     if (!document) return res.status(404).json({ error: "Document not found" });
     //console.log("hello",document.owner.toString(), req.user.name);
     if (document.owner.toString() !== req.user.name) {
-      return res.status(403).json({ error: "Only owner can view shared users" });
+      return res
+        .status(403)
+        .json({ error: "Only owner can view shared users" });
     }
 
     res.json(document.sharedWith);
@@ -468,7 +578,6 @@ app.get("/documents/:id/shared-users", verifyJWT, async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
-
 
 app.get("/logout", (req, res) => {
   res.clearCookie("access_token", {
@@ -479,7 +588,7 @@ app.get("/logout", (req, res) => {
   return res.json({ message: "Logged out successfully" });
 });
 
-app.delete("/documents/:id",verifyJWT, async (req, res) => {
+app.delete("/documents/:id", verifyJWT, async (req, res) => {
   try {
     const deletedDocument = await Document.findByIdAndDelete(req.params.id);
     if (!deletedDocument) {
@@ -487,7 +596,7 @@ app.delete("/documents/:id",verifyJWT, async (req, res) => {
     }
     res.json({ message: "Document deleted successfully" });
   } catch (error) {
-    console.error("❌ Error deleting document:", error);
+    console.error(" Error deleting document:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
