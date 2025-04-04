@@ -1,76 +1,85 @@
-
-import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
-import axios from "axios"
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-
 export default function Login() {
-  const [name, setName] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
-  const navigate = useNavigate()
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        setIsCheckingAuth(true)
+        setIsCheckingAuth(true);
         const res = await axios.get(`${BACKEND_URL}/me`, {
           withCredentials: true,
-        })
-        console.log("User already logged in:", res.data)
-        navigate("/")
+        });
+        console.log("User already logged in:", res.data);
+        navigate("/");
       } catch (err) {
-        console.log("Not logged in yet.")
+        console.log("Not logged in yet.");
       } finally {
-        setIsCheckingAuth(false)
+        setIsCheckingAuth(false);
       }
-    }
+    };
 
-    checkAuth()
-  }, [navigate])
+    checkAuth();
+  }, [navigate]);
 
   const handleLogin = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!name || !password) {
-      setError("Please enter both name and password.")
-      return
+      setError("Please enter both name and password.");
+      return;
     }
 
     try {
-      setIsLoading(true)
-      setError("")
+      setIsLoading(true);
+      setError("");
 
-      const response = await axios.post(`${BACKEND_URL}/login`, { name, password }, { withCredentials: true })
+      const response = await axios.post(
+        `${BACKEND_URL}/login`,
+        { name, password },
+        { withCredentials: true }
+      );
 
-      console.log("Login response:", response.data)
-      navigate("/")
+      console.log("Login response:", response.data);
+      navigate("/");
     } catch (error) {
-      console.error("Login error:", error)
-      setError(error.response?.data?.message || "Login failed. Please check your credentials.")
+      console.error("Login error:", error);
+      setError(
+        error.response?.data?.message ||
+          "Login failed. Please check your credentials."
+      );
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   if (isCheckingAuth) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <div className="w-full max-w-md bg-white rounded-lg shadow-md overflow-hidden">
         <div className="px-6 py-8">
-          <h2 className="text-2xl font-bold text-center text-gray-800 mb-1">Login</h2>
-          <p className="text-center text-gray-500 mb-6">Enter your credentials to access your documents</p>
+          <h2 className="text-2xl font-bold text-center text-gray-800 mb-1">
+            Login
+          </h2>
+          <p className="text-center text-gray-500 mb-6">
+            Enter your credentials to access your documents
+          </p>
 
           <form onSubmit={handleLogin} className="space-y-4">
             {error && (
@@ -88,7 +97,10 @@ export default function Login() {
             )}
 
             <div className="space-y-2">
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Username
               </label>
               <input
@@ -103,7 +115,10 @@ export default function Login() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Password
               </label>
               <input
@@ -122,6 +137,13 @@ export default function Login() {
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isLoading}
             >
+              <p className="text-center text-sm text-gray-600 mt-4">
+                New here?{" "}
+                <Link to="/register" className="text-blue-600 hover:underline">
+                  Register
+                </Link>
+              </p>
+
               {isLoading ? (
                 <>
                   <svg
@@ -154,6 +176,5 @@ export default function Login() {
         </div>
       </div>
     </div>
-  )
+  );
 }
-

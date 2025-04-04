@@ -26,9 +26,12 @@ function Home() {
 
     const fetchDocuments = async (userId) => {
       try {
-        const res = await axios.get(`${BACKEND_URL}/users/${userId}/documents`, {
-          withCredentials: true,
-        });
+        const res = await axios.get(
+          `${BACKEND_URL}/users/${userId}/documents`,
+          {
+            withCredentials: true,
+          }
+        );
         setDocuments(res.data);
       } catch (err) {
         console.error("Error fetching documents:", err);
@@ -37,6 +40,17 @@ function Home() {
 
     fetchUserData();
   }, [navigate]);
+
+  const handleLogout = async () => {
+    if (!window.confirm("Are you sure you want to log out?")) return;
+    try {
+      await axios.get(`${BACKEND_URL}/logout`, { withCredentials: true });
+      navigate("/login");
+    } catch (err) {
+      console.error("Logout failed:", err);
+      alert("Logout failed. Try again.");
+    }
+  };
 
   const createNewDocument = async () => {
     const title = prompt("Enter title for the new document:");
@@ -50,26 +64,26 @@ function Home() {
       );
       navigate(`/editor/${response.data.docId}`);
     } catch (error) {
-      
       console.error("Error creating document:", error);
     }
   };
-  
+
   const handleDeleteDocument = async (docId) => {
-      if (!window.confirm("Are you sure you want to delete this document?")) return;
-  
-      try {
-        await axios.delete(`${BACKEND_URL}/documents/${docId}`, {
-          withCredentials: true,
-        });
-        setDocuments((prevDocs) => prevDocs.filter((doc) => doc._id !== docId));
-        alert("Document deleted successfully.");
-      } catch (error) {
-        console.error("Error deleting document:", error);
-        alert("Failed to delete document.");
-      }
-    };
-    
+    if (!window.confirm("Are you sure you want to delete this document?"))
+      return;
+
+    try {
+      await axios.delete(`${BACKEND_URL}/documents/${docId}`, {
+        withCredentials: true,
+      });
+      setDocuments((prevDocs) => prevDocs.filter((doc) => doc._id !== docId));
+      alert("Document deleted successfully.");
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      alert("Failed to delete document.");
+    }
+  };
+
   const handleFileUpload = async (e) => {
     const uploadedFile = e.target.files[0];
     if (!uploadedFile) return;
@@ -82,13 +96,17 @@ function Home() {
     formData.append("title", title);
 
     try {
-      const response = await axios.post(`${BACKEND_URL}/upload-docx`, formData, {
-        withCredentials: true,
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      
+      const response = await axios.post(
+        `${BACKEND_URL}/upload-docx`,
+        formData,
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
       navigate(`/editor/${response.data.docId}`);
     } catch (error) {
       console.error("Error uploading file:", error);
@@ -98,7 +116,17 @@ function Home() {
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Welcome, {username}</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">
+            Welcome, {username}
+          </h1>
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition"
+          >
+            Logout
+          </button>
+        </div>
 
         <div className="flex gap-4 mb-6">
           <button
@@ -110,7 +138,12 @@ function Home() {
 
           <label className="bg-gray-200 text-gray-700 px-5 py-2 rounded-md cursor-pointer hover:bg-gray-300 transition">
             📂 Upload DOCX
-            <input type="file" accept=".docx" onChange={handleFileUpload} className="hidden" />
+            <input
+              type="file"
+              accept=".docx"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
           </label>
         </div>
 
@@ -128,15 +161,22 @@ function Home() {
                   📄 {doc.title || "Untitled Document"}
                 </h3>
                 <p className="text-gray-600 text-sm">
-                  <b>Last Updated:</b> {new Date(doc.lastUpdated).toLocaleString()}
+                  <b>Last Updated:</b>{" "}
+                  {new Date(doc.lastUpdated).toLocaleString()}
                 </p>
 
                 <div className="flex items-center gap-3 mt-3">
                   <button
-                    onClick={() => setShowSharedUsersFor(showSharedUsersFor === doc._id ? null : doc._id)}
+                    onClick={() =>
+                      setShowSharedUsersFor(
+                        showSharedUsersFor === doc._id ? null : doc._id
+                      )
+                    }
                     className="text-gray-700 hover:text-gray-900 transition"
                   >
-                    {showSharedUsersFor === doc._id ? "🔽 Hide Shared Users" : "👥 Show Shared Users"}
+                    {showSharedUsersFor === doc._id
+                      ? "🔽 Hide Shared Users"
+                      : "👥 Show Shared Users"}
                   </button>
 
                   <button
@@ -152,7 +192,11 @@ function Home() {
                     <b>Shared with:</b>
                     <ul className="list-disc pl-5">
                       {sharedUsersMap[doc._id]?.length > 0 ? (
-                        sharedUsersMap[doc._id].map((user, idx) => <li key={idx}>{user.name} ({user.permission})</li>)
+                        sharedUsersMap[doc._id].map((user, idx) => (
+                          <li key={idx}>
+                            {user.name} ({user.permission})
+                          </li>
+                        ))
                       ) : (
                         <li>No users shared yet</li>
                       )}
