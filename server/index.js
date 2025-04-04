@@ -582,7 +582,7 @@ app.get("/documents/:id/shared-users", verifyJWT, async (req, res) => {
 app.get("/logout", (req, res) => {
   res.clearCookie("access_token", {
     httpOnly: true,
-    sameSite: "Strict",
+    sameSite: "None",
     secure: true,
   });
   return res.json({ message: "Logged out successfully" });
