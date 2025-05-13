@@ -23,7 +23,24 @@ function Home() {
         navigate("/login");
       }
     };
-    useEffect(() => {
+    const fetchDocuments = async (userId) => {
+      try {
+        const res = await axios.get(
+          `${BACKEND_URL}/users/${userId}/documents`,
+          {
+            withCredentials: true,
+          }
+        );
+        setDocuments(res.data);
+      } catch (err) {
+        console.error("Error fetching documents:", err);
+      }
+    };
+
+    fetchUserData();
+  }, [navigate]);
+
+   useEffect(() => {
   if (!showSharedUsersFor) return;
 
   (async () => {
@@ -42,23 +59,6 @@ function Home() {
     }
   })();
 }, [showSharedUsersFor]);
-
-    const fetchDocuments = async (userId) => {
-      try {
-        const res = await axios.get(
-          `${BACKEND_URL}/users/${userId}/documents`,
-          {
-            withCredentials: true,
-          }
-        );
-        setDocuments(res.data);
-      } catch (err) {
-        console.error("Error fetching documents:", err);
-      }
-    };
-
-    fetchUserData();
-  }, [navigate]);
 
   const handleLogout = async () => {
     if (!window.confirm("Are you sure you want to log out?")) return;
