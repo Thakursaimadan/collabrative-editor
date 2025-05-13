@@ -23,6 +23,25 @@ function Home() {
         navigate("/login");
       }
     };
+    useEffect(() => {
+  if (!showSharedUsersFor) return;
+
+  (async () => {
+    try {
+      const res = await axios.get(
+        `${BACKEND_URL}/documents/${showSharedUsersFor}/shared-users`,
+        { withCredentials: true }
+      );
+      setSharedUsersMap((m) => ({
+        ...m,
+        [showSharedUsersFor]: res.data, 
+      }));
+    } catch (err) {
+      console.error("Error fetching shared users:", err);
+      setSharedUsersMap((m) => ({ ...m, [showSharedUsersFor]: [] }));
+    }
+  })();
+}, [showSharedUsersFor]);
 
     const fetchDocuments = async (userId) => {
       try {
