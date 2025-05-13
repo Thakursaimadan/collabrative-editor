@@ -561,22 +561,27 @@ app.get("/documents/shared-with-me", verifyJWT, async (req, res) => {
 });
 
 app.get("/documents/:id/shared-users", verifyJWT, async (req, res) => {
-  try {
-    const docId = req.params.id;
-    const document = await Document.findById(docId);
-    if (!document) return res.status(404).json({ error: "Document not found" });
-    //console.log("hello",document.owner.toString(), req.user.name);
-    if (document.owner.toString() !== req.user.name) {
-      return res
-        .status(403)
-        .json({ error: "Only owner can view shared users" });
-    }
-
-    res.json(document.sharedWith);
-  } catch (error) {
-    console.error("Error fetching shared users:", error);
-    res.status(500).json({ error: "Server error" });
+  const docId = req.params.id;
+  const document = await Document.findById(docId);
+  if (!document) return res.status(404).json({ error: "Document not found" });
+  if (document.owner.toString() !== req.user.name) {
+    return res.status(403).json({ error: "Only owner can view shared users" });
   }
+
+  // Look up each sharedWith entry’s name
+  const fullShared = await Promise.all(
+    document.sharedWith.map(async ({ userId, permission }) => {
+      const u = await Users.findById(userId).select("name");
+      return {
+        name: u?.name || userId,
+        permission
+      };
+    })
+  );
+
+  res.json(fullShared);
+});
+
 });
 
 app.get("/logout", (req, res) => {
