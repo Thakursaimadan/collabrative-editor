@@ -582,8 +582,6 @@ app.get("/documents/:id/shared-users", verifyJWT, async (req, res) => {
   res.json(fullShared);
 });
 
-});
-
 app.get("/logout", (req, res) => {
   res.clearCookie("access_token", {
     httpOnly: true,
